@@ -1,0 +1,3 @@
+displayName = PokeNPCS
+author = ATRK524
+version = 0.1
