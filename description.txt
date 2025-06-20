@@ -1,1 +1,4 @@
-Modify this file with a description of your mod.
+v0.0.1 - 16/06/2025
+- Añadida la Enfermera Joy como NPC con sprites y comportamientos personalizados.
+- Mensajes de Joy según eventos del mundo o vida del jugador.
+- Capacidad de curación de parte de Joy

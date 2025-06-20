@@ -3,8 +3,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 using Terraria.GameContent.Bestiary;
-using Terraria.ModLoader.Utilities;
-using Terraria.Localization;
+using System;
 
 namespace PokeNPCS.NPCs
 {
@@ -16,6 +15,14 @@ namespace PokeNPCS.NPCs
         private int idleTimer = 0;
         private int specialIdleFrameTimer = 0;
         private int specialIdleFrame = -1; // -1 = no hay animación especial activa
+        //Variables de caminata para Joy
+        private int wanderTimer = 0;
+        private int wanderDuration = 0;
+        private int wanderSwitchTimer = 0;
+        private int wanderDirection = 0;
+        //Variables de respiración
+        private int idleBreathStage = 0;
+        private int idleBreathTimer = 0;
 
         public override string Texture => "PokeNPCS/Sprites/NPCs/NurseJoy"; // Ruta del sprite de Nurse Joy
         public static int HeadIndex;
@@ -29,54 +36,515 @@ namespace PokeNPCS.NPCs
 
         public override void SetDefaults()
         {
-            NPC.homeless = false; // No es un NPC sin hogar
+            NPC.homeless = false;
             NPC.townNPC = true;
             NPC.friendly = true;
             NPC.width = 18;
             NPC.height = 40;
-            NPC.aiStyle = 7; //
+            NPC.aiStyle = 7;
             NPC.damage = 10;
-            NPC.defense = 15;
+            NPC.defense = 10;
             NPC.lifeMax = 250;
             NPC.HitSound = SoundID.NPCHit1;
             NPC.DeathSound = SoundID.NPCDeath1;
             NPC.knockBackResist = 0.5f;
             NPCID.Sets.ActsLikeTownNPC[Type] = true;
-            Main.npcFrameCount[NPC.type] = 12; // Número de frames de animación
+            Main.npcFrameCount[NPC.type] = 14; // Número de frames de animación
         }
 
-        //Ataque del NPC
-        public override void TownNPCAttackStrength(ref int damage, ref float knockback)
+        // Comportamiento de IA del NPC
+        private int healCooldown = 0;
+        public override void AI()
         {
-            damage = 25;       // Daño del ataque
-            knockback = 2f;    // Retroceso
-        }
-        public override void TownNPCAttackProj(ref int projType, ref int attackDelay)
-        {
-            projType = ProjectileID.CrimsonHeart;
-            attackDelay = 1; // Tiempo entre ataques
+            //Detener si está haciendo un gesto especial
+            if (specialIdleFrame >= 0)
+            {
+                NPC.velocity.X = 0f;
+                return;
+            }
+
+            // Detenerse al estar en conversación
+            if (Main.player[Main.myPlayer].talkNPC == NPC.whoAmI)
+            {
+                NPC.velocity.X = 0f;
+                return;
+            }
+
+            int closestPlayerIndex = -1;
+            float closestDistance = float.MaxValue;
+            // Buscar jugador activo y más cercano
+            for (int i = 0; i < Main.maxPlayers; i++)
+            {
+                Player p = Main.player[i];
+                if (p.active && !p.dead)
+                {
+                    float dist = Vector2.Distance(NPC.Center, p.Center);
+                    if (dist < closestDistance)
+                    {
+                        closestDistance = dist;
+                        closestPlayerIndex = i;
+                    }
+                }
+            }
+
+            if (closestPlayerIndex == -1)
+            {
+                NPC.velocity.X = 0f;
+                return;
+            }
+
+            Player player = Main.player[closestPlayerIndex];
+            float maxFollowDistance = 128f; // 8 bloques
+            float minFollowDistance = 80f;  // 5 bloques
+
+            bool isInRange = closestDistance < maxFollowDistance && player.statLife < player.statLifeMax2;
+
+            if (isInRange)
+            {
+                float horizontalDistance = Math.Abs(NPC.Center.X - player.Center.X);
+
+                // Si está muy cerca, se queda quieta
+                if (horizontalDistance <= minFollowDistance)
+                {
+                    NPC.velocity.X = 0f;
+                }
+                else
+                {
+                    // Solo se mueve en X (pegada al suelo)
+                    float speed = 1.5f;
+                    if (NPC.Center.X < player.Center.X)
+                        NPC.velocity.X = speed;
+                    else
+                        NPC.velocity.X = -speed;
+                }
+
+                // Si está en el suelo y encuentra una pared, puede "saltar" como otros NPCs
+                if (NPC.collideX && NPC.velocity.Y == 0f && NPC.velocity.X != 0f)
+                {
+                    NPC.velocity.Y = -5f; // Salta un pequeño escalón
+                }
+
+                // Lógica de curación
+                if (healCooldown <= 0)
+                {
+                    healCooldown = 60;
+                    Vector2 projVelocity = Vector2.Normalize(player.Center - NPC.Center) * 10f;
+
+                    //Tipo de proyectil
+                    int projType = ProjectileID.RubyBolt;
+                    if (Main.hardMode)
+                        projType = ProjectileID.AmberBolt;
+
+                    Projectile.NewProjectile(NPC.GetSource_FromAI(), NPC.Center, projVelocity, projType, 0, 0f, Main.myPlayer);
+
+                    int healAmount = 10;
+                    player.statLife += healAmount;
+                    if (player.statLife > player.statLifeMax2)
+                        player.statLife = player.statLifeMax2;
+
+                    player.HealEffect(healAmount);
+                }
+            }
+            else
+            {
+                NPC.velocity.X = 0f;
+            }
+            // Verificar si hay jugadores cercanos que necesiten curación
+            bool playerNeedsHealingNearby = false;
+            for (int i = 0; i < Main.maxPlayers; i++)
+            {
+                Player p = Main.player[i];
+                if (p.active && !p.dead)
+                {
+                    float dist = Vector2.Distance(NPC.Center, p.Center);
+                    if (dist < 128f && p.statLife < p.statLifeMax2)
+                    {
+                        playerNeedsHealingNearby = true;
+                        break;
+                    }
+                }
+            }
+
+            // Si no hay jugadores que necesiten curación se cura sola
+            if (!playerNeedsHealingNearby && NPC.life < NPC.lifeMax && healCooldown <= 0)
+            {
+                healCooldown = 60;
+
+                int selfHealAmount = 10;
+
+                NPC.life += selfHealAmount;
+                if (NPC.life > NPC.lifeMax)
+                    NPC.life = NPC.lifeMax;
+
+                NPC.HealEffect(selfHealAmount, true);
+
+                // Aura de empuje
+                Projectile.NewProjectile(
+                    NPC.GetSource_FromAI(),
+                    NPC.Center,
+                    Vector2.Zero, // sin movimiento
+                    ModContent.ProjectileType<HealingAura>(),
+                    0, // sin daño
+                    0f, // sin retroceso clásico
+                    Main.myPlayer
+                );
+            }
+
+            if (healCooldown > 0)
+                healCooldown--;
+
+            // Movimiento autónomo
+            if (!playerNeedsHealingNearby)
+            {
+                // Iniciar caminata si no está caminando
+                if (wanderTimer <= 0 && Main.rand.NextBool(600)) // ≈ cada 10 segundos
+                {
+                    wanderDuration = Main.rand.Next(60, 180); // duración de la caminata: 1 a 3 segundos
+                    wanderSwitchTimer = Main.rand.Next(20, 60); // tiempo para cambiar dirección
+                    wanderDirection = Main.rand.NextBool() ? 1 : -1; // 1 = derecha, -1 = izquierda
+                    wanderTimer = wanderDuration;
+                }
+
+                if (wanderTimer > 0)
+                {
+                    NPC.direction = wanderDirection;
+
+                    // Mover en la dirección actual
+                    NPC.velocity.X = wanderDirection * 1.2f;
+
+                    wanderTimer--;
+                    wanderSwitchTimer--;
+
+                    // Cambiar de dirección a mitad del trayecto
+                    if (wanderSwitchTimer <= 0 && wanderTimer > 0)
+                    {
+                        wanderDirection *= -1;
+                        NPC.direction = wanderDirection; // actualizar también aquí por si cambia
+                        wanderSwitchTimer = Main.rand.Next(20, 60);
+                    }
+
+                    // Saltar si choca
+                    if (NPC.collideX && NPC.velocity.Y == 0f)
+                    {
+                        NPC.velocity.Y = -4f;
+                    }
+                }
+                else
+                {
+                    NPC.velocity.X = 0f;
+                }
+            }
+            // Gesto especial (idle)
+            if (specialIdleFrame < 0 && NPC.velocity.X == 0f && talkTimer <= 0 && idleBreathStage == 0 && Main.rand.NextBool(600))
+            {
+                int chance = Main.rand.Next(10);
+
+                if (chance < 2)
+                {
+                    specialIdleFrame = 5;
+                    specialIdleFrameTimer = 30;
+                    specialFrameStage = 1;
+                }
+                else if (chance >= 4 && chance < 7)
+                {
+                    specialIdleFrame = 7;
+                    specialIdleFrameTimer = 60;
+                    specialFrameStage = 0;
+                }
+
+                // Reinicia respiración para que no interrumpa
+                idleBreathStage = 0;
+                idleBreathTimer = 0;
+                idleTimer = 0;
+            }
         }
 
-
-        //Mensajes iniciales de bienvenida
+        // Método para obtener el diálogo de la enfermera
         public override string GetChat()
         {
-            string[] dialogues = new string[]
-            {
-                "¿Necesitas ayuda con tus Pokémon?",
-                "¡Cuidar a los demás es mi especialidad!",
-                "Una buena salud es lo más importante.",
-                "¡Bienvenido a mi pequeña clínica!",
-                "¿Has visto a mis hermanas en otras ciudades?",
-                "Siempre estoy aquí para ayudarte."
-            };
+            //Diálogos y variables
+            string[] dialogues = new string[] { };
+            Player player = Main.LocalPlayer;
+            // Reacción según vida del jugador
+            float vidaActual = player.statLife;
+            float vidaMaxima = player.statLifeMax2;
+            float porcentajeVida = vidaActual / vidaMaxima;
 
+            //Diálogos según vida del jugador
+            if (porcentajeVida < 0.25f)
+                return "¡Estás muy malherido! ¡No te muevas, comenzaré la curación de inmediato!";
+            else if (porcentajeVida < 0.5f)
+                return "¡Eso no se ve bien! Quédate quieto, voy a ayudarte ahora mismo.";
+            else if (porcentajeVida < 1.0f)
+                return "¡Te ves un poco herido! Ven, déjame revisarte antes de que empeore.";
+            
+            // Diálogos especiales por eventos globales
+            if (Main.bloodMoon)
+            {
+                string[] bloodMoonDialogues = new string[]
+                       {
+                        "¡Oh no! Espero que mis pacientes estén a salvo...",
+                        "¡No salgas sin protección, está muy peligroso!",
+                        "Mis medicinas no sirven contra esos monstruos...",
+                        "¡Hoy no es día para enfermarse, la sala está más loca que un Magikarp tratando de aprender Surf!"
+                       };
+                return bloodMoonDialogues[Main.rand.Next(bloodMoonDialogues.Length)];
+            }
+            if (Main.eclipse)
+            {
+                string[] eclipseDialogues = new string[]
+                        {
+                        "¡Qué extraño clima! Pero no me detendrá de cuidar a mis pacientes.",
+                        "¡Ni siquiera la oscuridad me impide trabajar!",
+                        "¿Un eclipse? ¡Seguro que Rayquaza está jugando con el interruptor de la luz otra vez!",
+                        };
+                return eclipseDialogues[Main.rand.Next(eclipseDialogues.Length)];
+            }
+            if (Main.invasionType == InvasionID.MartianMadness)
+            {
+                string[] martianDialogues = new string[]
+                        {
+                        "¡Marcianos llegan y se van, pero un Gengar travieso se queda!",
+                        "¡Los pokémon están a salvo aquí!",
+                        "¡Cuiden a los Pokémon de los rayos láser!",
+                        };
+                return martianDialogues[Main.rand.Next(martianDialogues.Length)];
+            }
+            if (Main.invasionType == InvasionID.PirateInvasion)
+            {
+                string[] pirateDialogues = new string[]
+                        {
+                        "¡Los piratas no tienen nada que hacer contra una enfermera como yo!",
+                        "¡Guarden las medicinas, vienen por el botín!",
+                        "¡¿Equipo Rocket?! ¡No, son piratas! ¡Pero no importa, los Pokémon están a salvo!",
+                        };
+                return pirateDialogues[Main.rand.Next(pirateDialogues.Length)];
+            }
+
+            //Horario de diálogos
+            // 12AM - 3AM
+            if (!Main.dayTime && Main.time >= 16200 && Main.time < 32400)
+            {
+                dialogues = new string[]
+                {
+            "¿Vamos a comenzar tan temprano? ¡Estoy lista para ayudar!",
+            "Todavía es de madrugada... pero siempre hay trabajo que hacer.",
+            "Mis pacientes duermen, pero yo sigo vigilando.",
+                };
+                return dialogues[Main.rand.Next(dialogues.Length)];
+            }
+
+            // 4AM - 7AM y 9AM - 11AM
+            else if ((Main.dayTime && Main.time >= 0 && Main.time < 9000) || (Main.time >= 16200 && Main.time < 23400))
+            {
+                dialogues = new string[]
+                {
+            "¡Buenos días! ¿Cómo puedo ayudarte hoy?",
+            "Un nuevo día, nuevas oportunidades para sanar.",
+            "¿Ya desayunaste? Yo ya curé a tres Pokémon esta mañana.",
+                };
+                return dialogues[Main.rand.Next(dialogues.Length)];
+            }
+
+            // 12PM - 2PM
+            else if (Main.dayTime && Main.time >= 27000 && Main.time < 34200)
+            {
+                dialogues = new string[]
+                {
+            "Buenas tardes, ¿cómo puedo ayudarte hoy?",
+            "Hora de almorzar... o de una revisión médica.",
+            "A esta hora suelo organizar mis pociones.",
+                };
+                return dialogues[Main.rand.Next(dialogues.Length)];
+            }
+
+            // 4PM - 6PM
+            else if (Main.dayTime && Main.time >= 41400 && Main.time < 48600)
+            {
+                dialogues = new string[]
+                {
+            "¿Has tenido un buen día hasta ahora?",
+            "Ya casi termina el día, ¡pero sigo disponible!",
+            "Las curas de la tarde son mis favoritas.",
+                };
+                return dialogues[Main.rand.Next(dialogues.Length)];
+            }
+
+            // 8PM - 11PM
+            else if (!Main.dayTime && Main.time >= 1800 && Main.time < 12600)
+            {
+                dialogues = new string[]
+                {
+            "Buenas noches, aventurero. ¿Necesitas curación antes de descansar?",
+            "A esta hora suelo revisar historias clínicas.",
+            "Espero que tus Pokémon tengan dulces sueños.",
+                };
+                return dialogues[Main.rand.Next(dialogues.Length)];
+            }
+
+            //Generales
+            dialogues = new string[]
+            {
+        "¿Necesitas ayuda con tus Pokémon?",
+        "¡Cuidar a los demás es mi especialidad!",
+        "¡Bienvenido a mi pequeña clínica!",
+        "¿Has visto a mis hermanas en otras ciudades?",
+        "Siempre estoy aquí para ayudarte."
+            };
             return dialogues[Main.rand.Next(dialogues.Length)];
         }
+
 
         public override bool CanTownNPCSpawn(int numTownNPCs)
         {
             return true; // Siempre puede aparecer si hay espacio(de momento)
+        }
+
+        public override void FindFrame(int frameHeight)
+        {
+            // 1) Hablar (si talkTimer > 0, y parado)
+            if (talkTimer > 0 && NPC.velocity.X == 0f)
+            {
+                talkTimer--;
+                NPC.frameCounter++;
+                if (NPC.frameCounter >= 5)
+                {
+                    NPC.frameCounter = 0;
+                    if (talkForward)
+                    {
+                        NPC.frame.Y += frameHeight;
+                        if (NPC.frame.Y >= frameHeight * 5) talkForward = false;
+                    }
+                    else
+                    {
+                        NPC.frame.Y -= frameHeight;
+                        if (NPC.frame.Y <= frameHeight) talkForward = true;
+                    }
+                }
+                return;
+            }
+
+            // 2) Sentada (sólo si realmente está sobre una silla y sin moverse)
+            bool noPlayersNearby = true;
+            for (int i = 0; i < Main.maxPlayers; i++)
+            {
+                Player p = Main.player[i];
+                if (p.active && !p.dead && Vector2.Distance(NPC.Center, p.Center) < 400f) // ajusta distancia
+                {
+                    noPlayersNearby = false;
+                    break;
+                }
+            }
+
+            if (Main.dayTime == false && noPlayersNearby)
+            {
+                NPC.frameCounter++;
+                if (NPC.frameCounter >= 15)
+                {
+                    NPC.frameCounter = 0;
+                    if (NPC.frame.Y < 12 * frameHeight || NPC.frame.Y >= 13 * frameHeight)
+                        NPC.frame.Y = 12 * frameHeight;
+                    else
+                        NPC.frame.Y += frameHeight;
+                }
+                return;
+            }
+
+            // 3) Gestos especiales (guiño, mirar, etc.)
+            if (specialIdleFrame >= 0)
+            {
+                NPC.velocity.X = 0f;
+
+                NPC.frame.Y = frameHeight * specialIdleFrame;
+                specialIdleFrameTimer--;
+
+                if (specialIdleFrameTimer <= 0)
+                {
+                    if (specialFrameStage == 1)
+                    {
+                        specialIdleFrame = 6; // segundo frame del gesto
+                        specialIdleFrameTimer = 30;
+                        specialFrameStage = 2;
+                        NPC.frame.Y = frameHeight * specialIdleFrame;
+                    }
+                    else
+                    {
+                        // Finaliza gesto
+                        specialIdleFrame = -1;
+                        specialFrameStage = 0;
+                    }
+                }
+                return;
+            }
+
+            // 4) Bestiario (icono de bestiario)
+            if (NPC.IsABestiaryIconDummy)
+            {
+                NPC.frameCounter++;
+                if (NPC.frameCounter < 30)
+                    NPC.frame.Y = 0;
+                else if (NPC.frameCounter < 60)
+                    NPC.frame.Y = frameHeight * 7;
+                else
+                    NPC.frameCounter = 0;
+                return;
+            }
+
+            // 5) Caminar (si tiene velocidad X)
+            if (NPC.velocity.X != 0f)
+            {
+                NPC.frameCounter++;
+                if (NPC.frameCounter >= 10)
+                {
+                    NPC.frameCounter = 0;
+                    if (NPC.direction == -1)
+                    {
+                        // caminar izq (frames 9 y 10: índices 8 y 9)
+                        if (NPC.frame.Y < frameHeight * 8 || NPC.frame.Y > frameHeight * 9)
+                            NPC.frame.Y = frameHeight * 8;
+                        else
+                            NPC.frame.Y = NPC.frame.Y == frameHeight * 8
+                                ? frameHeight * 9
+                                : frameHeight * 8;
+                    }
+                    else
+                    {
+                        // caminar der (frames 11 y 12: índices 10 y 11)
+                        if (NPC.frame.Y < frameHeight * 10 || NPC.frame.Y > frameHeight * 11)
+                            NPC.frame.Y = frameHeight * 10;
+                        else
+                            NPC.frame.Y = NPC.frame.Y == frameHeight * 10
+                                ? frameHeight * 11
+                                : frameHeight * 10;
+                    }
+                }
+                return;
+            }
+
+            // 6) Idle (respiración lenta y posibilidad de gesto especial)
+            idleTimer++;
+
+            if (idleBreathStage == 0 && (NPC.frame.Y >= frameHeight * 10 || NPC.frame.Y <= frameHeight * 8))
+                NPC.frame.Y = 0;
+
+            NPC.frameCounter++;
+
+            if (idleBreathStage == 0 && NPC.frameCounter >= 120) // Esperar 2 segundos
+            {
+                NPC.frameCounter = 0;
+                NPC.frame.Y = frameHeight * 4;
+                idleBreathStage = 1;
+                idleBreathTimer = 60; // Mantener inhalación por 1 segundo
+            }
+            else if (idleBreathStage == 1)
+            {
+                idleBreathTimer--;
+                if (idleBreathTimer <= 0)
+                {
+                    NPC.frame.Y = 0;
+                    idleBreathStage = 0;
+                }
+            }
         }
 
         //Bestiario
@@ -89,197 +557,23 @@ namespace PokeNPCS.NPCs
             });
         }
 
+        // Añadir tienda de objetos
         public override void AddShops()
         {
             var npcShop = new NPCShop(Type, "Default")
-                .Add(ItemID.HealingPotion); // Por ahora
+                .Add(ItemID.LesserHealingPotion)
+                .Add(ItemID.HealingPotion);
+
+            if (Main.hardMode)
+                npcShop.Add(ItemID.GreaterHealingPotion);
 
             npcShop.Register();
         }
 
-        public override void FindFrame(int frameHeight)
-        {
-            //Gesto especial
-            if (specialIdleFrame >= 0)
-            {
-                specialIdleFrameTimer--;
-
-                if (specialIdleFrameTimer <= 0)
-                {
-                    if (specialFrameStage == 1)
-                    {
-                        // Cambiar al segundo frame (7)
-                        specialIdleFrame = 6;
-                        specialIdleFrameTimer = 30; // otros 0.5 seg
-                        specialFrameStage = 2;
-                        NPC.frame.Y = frameHeight * specialIdleFrame;
-                    }
-                    else
-                    {
-                        // Terminar la animación
-                        specialIdleFrame = -1;
-                        specialFrameStage = 0;
-                        NPC.frame.Y = 0;
-                    }
-                }
-            }
-
-            //Iconos de bestiario
-            if (NPC.IsABestiaryIconDummy)
-            {
-                NPC.frameCounter++;
-
-                if (NPC.frameCounter < 30)
-                {
-                    NPC.frame.Y = 0; // Frame idle
-                }
-                else if (NPC.frameCounter < 60)
-                {
-                    NPC.frame.Y = frameHeight * 7; // Frame guiño
-                }
-                else
-                {
-                    NPC.frameCounter = 0; // Reiniciar ciclo
-                }
-
-                return;
-            }
-
-            if (talkTimer > 0 && NPC.velocity.X == 0)
-            {
-                talkTimer--;
-
-                // Animación de hablar (frames 1 a 5)
-                NPC.frameCounter++;
-                if (NPC.frameCounter >= 5)
-                {
-                    NPC.frameCounter = 0;
-
-                    if (talkForward)
-                    {
-                        NPC.frame.Y += frameHeight;
-                        if (NPC.frame.Y >= frameHeight * 5)
-                        {
-                            talkForward = false;
-                        }
-                    }
-                    else
-                    {
-                        NPC.frame.Y -= frameHeight;
-                        if (NPC.frame.Y <= frameHeight)
-                        {
-                            talkForward = true;
-                        }
-                    }
-                }
-            }
-
-            else if (NPC.velocity.X != 0)
-            {
-                NPC.frameCounter++;
-
-                if (NPC.direction == -1)
-                {
-                    // Caminar izquierda: sprites 9 y 10
-                    if (NPC.frameCounter >= 10)
-                    {
-                        NPC.frameCounter = 0;
-
-                        if (NPC.frame.Y < frameHeight * 8 || NPC.frame.Y > frameHeight * 9)
-                        {
-                            NPC.frame.Y = frameHeight * 8;
-                        }
-                        else
-                        {
-                            NPC.frame.Y += frameHeight;
-                            if (NPC.frame.Y > frameHeight * 9)
-                                NPC.frame.Y = frameHeight * 8;
-                        }
-                    }
-                }
-                else
-                {
-                    // Caminar derecha: sprites 11 y 12
-                    if (NPC.frameCounter >= 10)
-                    {
-                        NPC.frameCounter = 0;
-
-                        if (NPC.frame.Y < frameHeight * 10 || NPC.frame.Y > frameHeight * 11)
-                        {
-                            NPC.frame.Y = frameHeight * 10;
-                        }
-                        else
-                        {
-                            NPC.frame.Y += frameHeight;
-                            if (NPC.frame.Y > frameHeight * 11)
-                                NPC.frame.Y = frameHeight * 10;
-                        }
-                    }
-                }
-            }
-
-            else
-            {
-                idleTimer++;
-                // Si venía caminando o hablando, resetear a idle
-                if (NPC.frame.Y >= frameHeight * 10 || NPC.frame.Y <= frameHeight * 8)
-                {
-                    NPC.frame.Y = 0;
-                }
-
-                if (specialIdleFrame >= 0)
-                {
-                    // Mostrar frame especial (mirar, guiñar, etc.)
-                    NPC.frame.Y = frameHeight * specialIdleFrame;
-                    specialIdleFrameTimer--;
-
-                    if (specialIdleFrameTimer <= 0)
-                    {
-                        specialIdleFrame = -1;
-                        NPC.frame.Y = 0; // volver al idle base
-                    }
-                }
-                else
-                {
-                    // Alternancia entre idle (0) y respiración (5)
-                    NPC.frameCounter++;
-                    if (NPC.frameCounter >= 60)
-                    {
-                        NPC.frameCounter = 0;
-                        NPC.frame.Y = NPC.frame.Y == 0 ? frameHeight * 5 : 0;
-                    }
-
-                    // Solo permitir gesto especial si NO camina NI habla
-                    if (idleTimer >= 120 && NPC.velocity.X == 0 && talkTimer <= 0)
-                    {
-                        idleTimer = 0;
-                        int chance = Main.rand.Next(10);
-
-                        // 20% de probabilidad de mirar a los lados
-                        if (chance < 2)
-                        {
-                            specialIdleFrame = 5;
-                            specialIdleFrameTimer = 30; // 0.5 segundos(30 ticks)
-                            specialFrameStage = 1;
-                            NPC.frame.Y = frameHeight * specialIdleFrame;
-                        }
-                        // 30% de probabilidad de guiñar
-                        else if (chance > 3 && chance < 6)
-                        {
-                            int[] specialFrames = new int[] { 7 };
-                            specialIdleFrame = specialFrames[Main.rand.Next(specialFrames.Length)];
-                            specialIdleFrameTimer = 60;
-                            NPC.frame.Y = frameHeight * specialIdleFrame;
-                        }
-                    }
-                }
-
-            }
-
-        }
+        // Botones de chat
         public override void SetChatButtons(ref string button, ref string button2)
         {
-            button = "Ver tienda"; // Botón 1
+            button = "Ver tienda";
         }
 
         public override void OnChatButtonClicked(bool firstButton, ref string shopName)
@@ -287,10 +581,8 @@ namespace PokeNPCS.NPCs
             if (firstButton)
             {
                 shopName = "Default"; // Nombre de la tienda registrada en AddShops
-                talkTimer = 60; // Esto activa la animación de hablar durante 1 segundo
+                talkTimer = 60; //Animación de hablar
             }
         }
-
-
     }
 }
