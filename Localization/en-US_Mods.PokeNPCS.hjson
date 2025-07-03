@@ -43,6 +43,8 @@ NPCs: {
 			Princess_LovesNPC: Me gusta {NPCName}.
 		}
 	}
+
+	TownNPC.DisplayName: Town N P C
 }
 
 Projectiles.HealingAura.DisplayName: Healing Aura

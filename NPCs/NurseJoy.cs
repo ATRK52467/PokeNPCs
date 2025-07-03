@@ -7,7 +7,8 @@ using System;
 
 namespace PokeNPCS.NPCs
 {
-    public class NurseJoy : ModNPC
+    public class NurseJoy : TownNPC
+
     {
         private int specialFrameStage = 0; //Gestos especiales 0 = ninguno, 1 = sprite 6, 2 = sprite 7
         private int talkTimer = 0;
@@ -277,7 +278,7 @@ namespace PokeNPCS.NPCs
                 return "¡Eso no se ve bien! Quédate quieto, voy a ayudarte ahora mismo.";
             else if (porcentajeVida < 1.0f)
                 return "¡Te ves un poco herido! Ven, déjame revisarte antes de que empeore.";
-            
+
             // Diálogos especiales por eventos globales
             if (Main.bloodMoon)
             {
@@ -560,15 +561,19 @@ namespace PokeNPCS.NPCs
         // Añadir tienda de objetos
         public override void AddShops()
         {
-            var npcShop = new NPCShop(Type, "Default")
-                .Add(ItemID.LesserHealingPotion)
-                .Add(ItemID.HealingPotion);
-
-            if (Main.hardMode)
-                npcShop.Add(ItemID.GreaterHealingPotion);
-
-            npcShop.Register();
+            CreateShop(Type,
+                "Default",
+            new int[] { //Items Prehardmode
+                ItemID.LesserHealingPotion,
+                ItemID.HealingPotion
+            },
+            new int[] { //Items Hardmode
+                ItemID.GreaterHealingPotion,
+                ItemID.SuperHealingPotion
+            }
+            );
         }
+
 
         // Botones de chat
         public override void SetChatButtons(ref string button, ref string button2)
