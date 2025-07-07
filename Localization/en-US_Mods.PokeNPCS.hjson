@@ -45,6 +45,24 @@ NPCs: {
 	}
 
 	TownNPC.DisplayName: Town N P C
+
+	Azul: {
+		DisplayName: Azul
+
+		TownNPCMood: {
+			Content: Estoy feliz.
+			NoHome: Detesto no tener un hogar.
+			FarFromHome: Estoy demasiado lejos de casa.
+			LoveSpace: Me encanta tener tanto espacio.
+			DislikeCrowded: No me gusta tener tan poco espacio.
+			HateCrowded: Detesto tener poco espacio.
+			LikeNPC_Princess: Me gusta {NPCName}.
+			Princess_LovesNPC: Me gusta {NPCName}.
+		}
+	}
+
+	Giovanni.DisplayName: Giovanni
+	R1.DisplayName: R1
 }
 
 Projectiles.HealingAura.DisplayName: Healing Aura

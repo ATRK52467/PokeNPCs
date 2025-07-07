@@ -4,6 +4,7 @@ using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 using Terraria.GameContent.Bestiary;
 using System;
+using System.Collections.Generic;
 
 namespace PokeNPCS.NPCs
 {
@@ -561,17 +562,71 @@ namespace PokeNPCS.NPCs
         // Añadir tienda de objetos
         public override void AddShops()
         {
-            CreateShop(Type,
-                "Default",
-            new int[] { //Items Prehardmode
-                ItemID.LesserHealingPotion,
-                ItemID.HealingPotion
-            },
-            new int[] { //Items Hardmode
-                ItemID.GreaterHealingPotion,
-                ItemID.SuperHealingPotion
+            var shop = new NPCShop(Type, "Default"); // Nombre de la tienda
+
+            var itemsPreHardmode = new List<int> { }; //Items pre-hardmode
+
+            var itemsHardmode = new List<int> { }; //Items hardmode
+            // Precios de los objetos
+            var preciosPreHardmode = new Dictionary<int, int>();
+            var preciosHardmode = new Dictionary<int, int>();
+
+            //Variables auxiliares
+            Item myItem = new Item();
+
+            //Items de mods
+            if (ModLoader.TryGetMod("Pokemod", out Mod pokemod))
+            {
+                // Pre-hardmode
+                if (pokemod.TryFind("Potion", out ModItem potion))
+                {
+                    myItem.SetDefaults(potion.Type);
+                    myItem.value = Item.buyPrice(silver:25); //EN PROGRESO(PACO)
+                    itemsPreHardmode.Add(myItem.type);
+                }
+
+                if (pokemod.TryFind("Revive", out ModItem revive))
+                {
+                    itemsPreHardmode.Add(revive.Type);
+                    preciosPreHardmode[revive.Type] = Item.buyPrice(silver: 70);
+                }
+
+                if (pokemod.TryFind("SuperPotion", out ModItem superPotion))
+                {
+                    itemsPreHardmode.Add(superPotion.Type);
+                    preciosPreHardmode[superPotion.Type] = Item.buyPrice(gold: 1);
+                }
+
+                // Hardmode
+                if (pokemod.TryFind("HyperPotion", out ModItem hyperPotion))
+                {
+                    itemsHardmode.Add(hyperPotion.Type);
+                    preciosHardmode[hyperPotion.Type] = Item.buyPrice(gold: 3);
+                }
+
+                if (pokemod.TryFind("MaxPotion", out ModItem maxPotion))
+                {
+                    itemsHardmode.Add(maxPotion.Type);
+                    preciosHardmode[maxPotion.Type] = Item.buyPrice(gold: 5);
+                }
+
+                if (pokemod.TryFind("MaxRevive", out ModItem maxrevive))
+                {
+                    itemsHardmode.Add(maxrevive.Type);
+                    preciosHardmode[maxrevive.Type] = Item.buyPrice(gold: 10);
+                }
+
+                if (pokemod.TryFind("PokeHealer", out ModItem pokeHealer))
+                {
+                    itemsHardmode.Add(pokeHealer.Type);
+                    preciosHardmode[pokeHealer.Type] = Item.buyPrice(gold: 25);
+                }
             }
-            );
+            else
+            {
+                Main.NewText("Pokemod no está cargado, no se pueden vender objetos de Pokemod.", 255, 0, 0);
+            }
+            CreateShop(Type, "Default", itemsPreHardmode.ToArray(), preciosPreHardmode, itemsHardmode.ToArray(), preciosHardmode);
         }
 
 

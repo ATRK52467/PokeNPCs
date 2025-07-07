@@ -18,19 +18,43 @@ namespace PokeNPCS.NPCs
 
         }
 
-        public void CreateShop(int npcType, string shopName, int[] items, int[] itemsHardmode)
+        public void CreateShop(
+    int npcType,
+    string shopName,
+    int[] items,
+    Dictionary<int, int> precios,
+    int[] itemsHardmode,
+    Dictionary<int, int> preciosHardmode
+)
         {
             var shop = new NPCShop(npcType, shopName);
 
+            // Items Pre-Hardmode
             foreach (int item in items)
-                shop.Add(item);
+            {
+                if (precios != null && precios.TryGetValue(item, out int price))
+                {
+                    // Asigna el precio al Item
+                    ItemLoader.GetItem(item).Item.value = price;
+                }
 
-            //Item(s) Hardmode
+                shop.Add(item);
+            }
+
+            // Items Hardmode
             foreach (int item in itemsHardmode)
+            {
+                if (preciosHardmode != null && preciosHardmode.TryGetValue(item, out int price))
+                {
+                    ItemLoader.GetItem(item).Item.value = price;
+                }
+
                 shop.Add(item, Condition.Hardmode);
+            }
 
             shop.Register();
         }
+
 
     }
 }
