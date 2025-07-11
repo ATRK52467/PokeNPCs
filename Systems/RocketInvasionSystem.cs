@@ -21,13 +21,13 @@ namespace PokeNPCS.Systems
 
         private void TryStartRocketInvasion()
         {
-            // Cambia esta probabilidad como quieras (0.05 = 5% cada amanecer)
-            float chance = 1f;
+            //Probabilidad invasión (0.1 = 10% cada amanecer)
+            float chance = 0.1f;
 
             if (Main.rand.NextFloat() < chance)
             {
                 Events.RocketInvasion.Start();
-                Main.NewText("¡Preparense para la devastación!", 255, 50, 255);
+                Main.NewText("¡Preparense para los problemas, y más vale que teman!...", 255, 50, 255);
             }
         }
     }

@@ -7,19 +7,29 @@ public class HealingAura : ModProjectile
     public override string Texture => "PokeNPCS/Sprites/Projectiles/HealingAura"; // Ruta
     public override void SetDefaults()
     {
-        Projectile.width = 80;  // 5 bloques * 16
-        Projectile.height = 80;
+        Projectile.width = 40;  
+        Projectile.height = 40;
         Projectile.aiStyle = 0;
         Projectile.friendly = false;
         Projectile.hostile = false;
         Projectile.penetrate = -1;
-        Projectile.timeLeft = 10;
+        Projectile.timeLeft = 120;
         Projectile.tileCollide = false;
         Projectile.ignoreWater = true;
+        Main.projFrames[Projectile.type] = 6;
     }
 
     public override void AI()
     {
+        // Animación: cambia de frame cada 20 ticks
+        Projectile.frameCounter++;
+        if (Projectile.frameCounter >= 20)
+        {
+            Projectile.frameCounter = 0;
+            Projectile.frame++;
+            if (Projectile.frame >= Main.projFrames[Projectile.type])
+                Projectile.frame = 0;
+        }
         // Empujar NPCs hostiles
         foreach (NPC npc in Main.npc)
         {
@@ -27,7 +37,7 @@ public class HealingAura : ModProjectile
             {
                 Vector2 push = npc.Center - Projectile.Center;
                 push.Normalize();
-                push *= 5f; // 5 bloques de empuje (≈ 5 px/tick)
+                push *= 4f; // 4 bloques de empuje (≈ 4 px/tick)
                 npc.velocity += push;
             }
         }

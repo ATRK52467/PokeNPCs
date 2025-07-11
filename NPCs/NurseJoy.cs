@@ -25,6 +25,9 @@ namespace PokeNPCS.NPCs
         //Variables de respiración
         private int idleBreathStage = 0;
         private int idleBreathTimer = 0;
+        //Festejo
+        private int celebrationCooldown = 0;
+        int dailyFestejoTimer = 0;
 
         public override string Texture => "PokeNPCS/Sprites/NPCs/NurseJoy"; // Ruta del sprite de Nurse Joy
         public static int HeadIndex;
@@ -38,12 +41,9 @@ namespace PokeNPCS.NPCs
 
         public override void SetDefaults()
         {
-            NPC.homeless = false;
-            NPC.townNPC = true;
-            NPC.friendly = true;
+            base.SetDefaults(); //cargar de TownNPC
             NPC.width = 18;
             NPC.height = 40;
-            NPC.aiStyle = 7;
             NPC.damage = 10;
             NPC.defense = 10;
             NPC.lifeMax = 250;
@@ -396,7 +396,6 @@ namespace PokeNPCS.NPCs
             return dialogues[Main.rand.Next(dialogues.Length)];
         }
 
-
         public override bool CanTownNPCSpawn(int numTownNPCs)
         {
             return true; // Siempre puede aparecer si hay espacio(de momento)
@@ -426,7 +425,7 @@ namespace PokeNPCS.NPCs
                 return;
             }
 
-            // 2) Sentada (sólo si realmente está sobre una silla y sin moverse)
+            // 2) Bailar o festejar (si no hay jugadores cerca y no es de día)
             bool noPlayersNearby = true;
             for (int i = 0; i < Main.maxPlayers; i++)
             {
@@ -437,11 +436,20 @@ namespace PokeNPCS.NPCs
                     break;
                 }
             }
-
-            if (Main.dayTime == false && noPlayersNearby)
+            //Joy emoteando
+            if (Main.dayTime)
             {
+                // Resetea el contador diario al amanecer
+                dailyFestejoTimer = 0;
+            }
+
+            if (Main.dayTime == false && noPlayersNearby && dailyFestejoTimer < 1800)
+            {
+                dailyFestejoTimer++;
                 NPC.frameCounter++;
-                if (NPC.frameCounter >= 15)
+                // Animación de emotes 
+                NPC.frameCounter++;
+                if (NPC.frameCounter >= 30)
                 {
                     NPC.frameCounter = 0;
                     if (NPC.frame.Y < 12 * frameHeight || NPC.frame.Y >= 13 * frameHeight)
@@ -449,6 +457,27 @@ namespace PokeNPCS.NPCs
                     else
                         NPC.frame.Y += frameHeight;
                 }
+                // Lógica del cooldown de disparo
+                if (celebrationCooldown > 0)
+                {
+                    celebrationCooldown--;
+                }
+                else
+                {
+                    // Disparo cada 5 segundos (300 ticks)
+                    int projCelebration = ProjectileID.StardustGuardianExplosion;
+                    Vector2 projVelocity = new Vector2(0, -5f);
+                    Projectile.NewProjectile(
+                        NPC.GetSource_FromAI(),
+                        NPC.Center,
+                        projVelocity,
+                        projCelebration,
+                        20, 0f, -1
+                    );
+
+                    celebrationCooldown = 300;
+                }
+
                 return;
             }
 
@@ -581,7 +610,7 @@ namespace PokeNPCS.NPCs
                 if (pokemod.TryFind("Potion", out ModItem potion))
                 {
                     myItem.SetDefaults(potion.Type);
-                    myItem.value = Item.buyPrice(silver:25); //EN PROGRESO(PACO)
+                    myItem.value = Item.buyPrice(silver: 25); //EN PROGRESO(PACO)
                     itemsPreHardmode.Add(myItem.type);
                 }
 

@@ -5,6 +5,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using System;
+using Terraria.ModLoader.IO;
 
 namespace PokeNPCS.Events
 {
@@ -13,6 +14,7 @@ namespace PokeNPCS.Events
         public static bool Active = false;
         public static int Progress = 0;
         public const int Size = 100;
+        public static bool HasBeatenRocketInvasion = false;
 
         private static int SpawnCooldown = 0;
         private const int SpawnInterval = 120;
@@ -116,6 +118,8 @@ namespace PokeNPCS.Events
                     Main.invasionProgressNearInvasion = false;
                     Main.invasionSize = 0;
                     BossSpawned = false;
+
+                    HasBeatenRocketInvasion = true;
                 }
 
                 return;
@@ -202,6 +206,14 @@ namespace PokeNPCS.Events
             {
                 NetMessage.SendData(MessageID.InvasionProgressReport);
             }
+        }
+        public override void SaveWorldData(TagCompound tag)
+        {
+            tag["HasBeatenRocketInvasion"] = HasBeatenRocketInvasion;
+        }
+        public override void LoadWorldData(TagCompound tag)
+        {
+            HasBeatenRocketInvasion = tag.GetBool("HasBeatenRocketInvasion");
         }
 
 

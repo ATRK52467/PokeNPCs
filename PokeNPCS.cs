@@ -17,6 +17,8 @@ namespace PokeNPCS
 		{
 			NurseJoy.HeadIndex = AddNPCHeadTexture(ModContent.NPCType<NurseJoy>(), "PokeNPCS/Sprites/NPCs/NurseJoy_Head");
 			Giovanni.HeadIndex = AddNPCHeadTexture(ModContent.NPCType<Giovanni>(), "PokeNPCS/Sprites/NPCs/Giovanni_Head");
+			Spyral.HeadIndex = AddNPCHeadTexture(ModContent.NPCType<Spyral>(), "PokeNPCS/Sprites/NPCs/Spyral_Head");
+			Lillie.HeadIndex = AddNPCHeadTexture(ModContent.NPCType<Lillie>(), "PokeNPCS/Sprites/NPCs/Lillie_Head");
 		}
 
 	}

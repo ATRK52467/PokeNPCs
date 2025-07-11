@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PokeNPCS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b5771c94af1a0447b6cefd818a1370dbeab01225")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+336dbd2c2654f3e13072cd992833132be062762d")]
 [assembly: System.Reflection.AssemblyProductAttribute("PokeNPCS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PokeNPCS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

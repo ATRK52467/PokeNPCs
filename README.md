@@ -45,11 +45,13 @@ En el futuro se podrá abrir una fase de contribución para artistas, desarrolla
 
 ## 📦 Contenido del Mod
 
-- 👩‍⚕️ **Nurse Joy**: NPC de apoyo que puede curar a tus criaturas (si usas Pokemod).
+- 👩‍⚕️ **Nurse Joy**: NPC de apoyo que puede curarte y a futuro tus criaturas (si usas Pokemod).
 - 🪑 Animaciones personalizadas: Sentarse, hablar, caminar, guiñar y mirar a ambos lados.
-- 🛍️ Tienda con objetos útiles (por ejemplo, curaciones o temáticos).
+- 🛍️ Tienda con objetos útiles (especialmente de Pokemod).
 - 🧠 IA especial basada en comportamiento de ciudad de Terraria.
 - 🔄 Compatible con otros mods Pokémon de la comunidad.
+- Invasión del Equipo Rocket con jefe final(En progreso)
+- Menú temático animado de pokémon
 
 ---
 

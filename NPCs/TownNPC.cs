@@ -12,6 +12,14 @@ namespace PokeNPCS.NPCs
     {
         public override string Texture => "PokeNPCS/Sprites/NPCs/NurseJoy"; // Ruta default
 
+        public override void SetDefaults()
+        {
+            NPC.homeless = false;
+            NPC.townNPC = true;
+            NPC.friendly = true;
+            NPC.aiStyle = 7; // Estilo de IA personalizado
+        }
+
         //Comportamiento del NPC
         public override void AI()
         {

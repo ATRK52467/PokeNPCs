@@ -36,7 +36,7 @@ namespace PokeNPCS.Events
 
         public override void OnKill()
         {
-            RocketInvasion.OnRocketNPCKilled(NPC);
+            //lógica para este enemigo al morir
         }
 
 
