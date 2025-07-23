@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-<Import Project="C:\DocumentosNoSync\My Games\Terraria\tModLoader\ModSources\PokeNPCS\tMLMod.targets" />
-<Import Project="tModLoader.targets" />
+
   <PropertyGroup>
     <AssemblyName>PokeNPCS</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
@@ -11,4 +10,14 @@
   <ItemGroup>
     <PackageReference Include="tModLoader.CodeAssist" Version="0.1.5" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Content\Music\ArticunoTheme.ogg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Import Project="C:\DocumentosNoSync\My Games\Terraria\tModLoader\ModSources\PokeNPCS\tMLMod.targets" />
+  <Import Project="tModLoader.targets" />
+
 </Project>

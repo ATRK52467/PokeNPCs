@@ -33,12 +33,29 @@ namespace PokeNPCS.NPCs
             NPC.DeathSound = SoundID.NPCDeath1;
             NPC.knockBackResist = 0.5f;
             NPCID.Sets.ActsLikeTownNPC[Type] = true;
-            Main.npcFrameCount[NPC.type] = 1; // Número de frames de animación
+            Main.npcFrameCount[NPC.type] = 4; // Número de frames de animación
         }
 
         public override void FindFrame(int frameHeight)
         {
-            NPC.frame.Y = 0; // Mantener el frame en 0 para una sola animación
+            int secondTicker = (int)(Main.GameUpdateCount / 60) % 4; // Cambia cada 60 ticks (~1 seg)
+
+            if (NPC.IsABestiaryIconDummy)
+            {
+                NPC.frameCounter++;
+                if (NPC.frameCounter < 30)
+                    NPC.frame.Y = 0;
+                else if (NPC.frameCounter < 60)
+                    NPC.frame.Y = frameHeight * 7;
+                else
+                    NPC.frameCounter = 0;
+                return;
+            }
+
+            // Cambiar entre 4 frames (0, 1, 2, 3), uno por segundo
+            NPC.frame.Y = frameHeight * secondTicker;
+
+
         }
         public override bool CanTownNPCSpawn(int numTownNPCs)
         {

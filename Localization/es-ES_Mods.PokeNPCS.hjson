@@ -18,8 +18,8 @@ NPCs: {
 		DisplayName: Enfermera Joy
 
 		TownNPCMood: {
-			Content: Estoy feliz.
-			NoHome: Detesto no tener un hogar.
+			Content: Me encanta gestionar mi pequeña clínica
+			NoHome: Sin mi consultorio no puedo ayudar a los pokémones.
 			FarFromHome: Estoy demasiado lejos de casa.
 			LoveSpace: Me encanta tener tanto espacio.
 			DislikeCrowded: No me gusta tener tan poco espacio.
@@ -82,26 +82,26 @@ NPCs: {
 		PokeNPCS: {
 			Items: {
 				MyPaintingItem: {
-					DisplayName: My Custom Painting
-					Tooltip: A nice decorative painting
+					// DisplayName: My Custom Painting
+					// Tooltip: A nice decorative painting
 				}
 			}
 		}
 	}
 
-	Articuno.DisplayName: Articuno
+	// Articuno.DisplayName: Articuno
 }
 
 Projectiles.HealingAura.DisplayName: Healing Aura
 
 Items: {
 	MyPaintingItem: {
-		Tooltip: ""
-		DisplayName: My Painting Item
+		Tooltip: Una obra maestra de arte
+		DisplayName: Pintura de Greninja
 	}
 
 	PaintRayquazaItem: {
-		DisplayName: Paint Rayquaza Item
-		Tooltip: ""
+		DisplayName: Pintura celestial Rayquaza
+		Tooltip: El terror de los cielos
 	}
 }

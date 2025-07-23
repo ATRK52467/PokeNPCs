@@ -27,7 +27,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
-      "tModLoader.CodeAssist >= 0.1.*"
+      "tModLoader.CodeAssist >= 0.1.5"
     ]
   },
   "packageFolders": {
@@ -74,7 +74,7 @@
         "dependencies": {
           "tModLoader.CodeAssist": {
             "target": "Package",
-            "version": "[0.1.*, )"
+            "version": "[0.1.5, )"
           }
         },
         "imports": [
